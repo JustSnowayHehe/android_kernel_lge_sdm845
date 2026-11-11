@@ -12,25 +12,17 @@ jobs:
       - name: Checkout kernel source
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install build dependencies and Clang
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git libssl-dev libelf-dev python3 zip
-
-      - name: Download AOSP Clang & GCC toolchains
-        run: |
-          mkdir -p ~/toolchains
-          git clone --depth=1 https://github.com ~/toolchains/clang
-          git clone --depth=1 https://github.com ~/toolchains/gcc64
-          git clone --depth=1 https://github.com ~/toolchains/gcc32
+          sudo apt-get install -y bc bison build-essential ccache clang curl flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi git libelf-dev libssl-dev lld llvm python3 zip
 
       - name: Compile Kernel (lineageos_caymanslm_defconfig)
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
-          export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
           make O=out ARCH=arm64 lineageos_caymanslm_defconfig
-          make -j$(nproc) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- Image.gz-dtb
+          make -j$(nproc) O=out ARCH=arm64 CC=clang LD=ld.lld CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- Image.gz-dtb
 
       - name: Upload compiled Image.gz-dtb
         uses: actions/upload-artifact@v4
