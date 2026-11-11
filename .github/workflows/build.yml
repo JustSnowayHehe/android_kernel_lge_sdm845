@@ -1,0 +1,39 @@
+name: Build LG Velvet 4G Kernel (Android 17 Backport)
+
+on:
+  push:
+    branches: [ lineage-24.0 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libssl-dev libelf-dev python3 zip
+
+      - name: Download AOSP Clang & GCC toolchains
+        run: |
+          mkdir -p ~/toolchains
+          git clone --depth=1 https://github.com ~/toolchains/clang
+          git clone --depth=1 https://github.com ~/toolchains/gcc64
+          git clone --depth=1 https://github.com ~/toolchains/gcc32
+
+      - name: Compile Kernel (lineageos_caymanslm_defconfig)
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
+          make O=out ARCH=arm64 lineageos_caymanslm_defconfig
+          make -j$(nproc) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- Image.gz-dtb
+
+      - name: Upload compiled Image.gz-dtb
+        uses: actions/upload-artifact@v4
+        with:
+          name: caymanslm-kernel-a17-untested
+          path: out/arch/arm64/boot/Image.gz-dtb
