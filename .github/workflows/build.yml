@@ -12,21 +12,29 @@ jobs:
       - name: Checkout kernel source
         uses: actions/checkout@v4
 
-      - name: Install build dependencies and Clang
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache clang curl flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi git libelf-dev libssl-dev lld llvm python3 zip
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip
+
+      - name: Download official LineageOS Clang & GCC
+        run: |
+          mkdir -p ~/tc
+          git clone --depth=1 https://github.com ~/tc/clang
+          git clone --depth=1 https://github.com ~/tc/gcc64
+          git clone --depth=1 https://github.com ~/tc/gcc32
 
       - name: Compile Kernel (lineageos_caymanslm_defconfig)
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
+          export PATH="$HOME/tc/clang/bin:$HOME/tc/gcc64/bin:$HOME/tc/gcc32/bin:$PATH"
           make O=out ARCH=arm64 lineageos_caymanslm_defconfig
-          make -j$(nproc) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip CLANG_TRIPLE=aarch64-linux-gnu- CLANG_TRIPLE_ARM32=arm-linux-gnueabi- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- Image.gz-dtb
+          ./scripts/config --file out/.config -d COMPAT_VDSO
+          make -j$(nproc) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- Image.gz-dtb
 
       - name: Upload compiled Image.gz-dtb
         uses: actions/upload-artifact@v4
         with:
           name: caymanslm-kernel-a17-untested
           path: out/arch/arm64/boot/Image.gz-dtb
-
