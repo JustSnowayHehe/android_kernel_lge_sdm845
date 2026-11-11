@@ -1657,11 +1657,11 @@ static __latent_entropy struct task_struct *copy_process(
 	 * p->set_child_tid which is (ab)used as a kthread's data pointer for
 	 * kernel threads (PF_KTHREAD).
 	 */
-	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
+	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? args->child_tid : NULL;
 	/*
 	 * Clear TID on mm_release()?
 	 */
-	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
+	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? args->child_tid : NULL;
 
 	ftrace_graph_init_task(p);
 
